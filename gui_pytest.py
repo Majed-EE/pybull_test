@@ -1,9 +1,11 @@
 import pybullet as p
 import time
 import pybullet_data
-# import math
+import math
 import numpy as np
-import keyboard
+import matplotlib.pyplot as plt
+
+
 
 physicsClient=p.connect(p.GUI)
 # p.setAdditionalSearchVisualizer()
@@ -17,8 +19,8 @@ p.resetDebugVisualizerCamera(cameraDistance=0.4,cameraYaw=50,cameraPitch=-50,cam
 
 
 # define start pose
-StartPos_cuboid=[1,0,0]
-StartPos_sphere=[-1,0,0]
+StartPos_cuboid=[0.1,0,0.03998089919150022] 
+StartPos_sphere=[-1,0,0.049987949685306586]  
 StartPos_arh=[0,0,0]
 StartOrientation=p.getQuaternionFromEuler([0,0,0])
 
@@ -29,6 +31,65 @@ sphereId=p.loadURDF(r"models/simple_object/sphere.urdf",StartPos_sphere)
 arhId=p.loadURDF(r"models/end_effector/left.urdf",StartPos_arh)
 # armId=p.loadURDF(r"models/end_effector/arm.urdf",StartPos_sphere)
 # ur5Id=p.loadURDF(r"models/end_effector/left.urdf")
+
+
+
+####### plot graph
+
+
+
+
+
+
+
+
+
+##### draw axis lines ###########
+
+# Function to draw axes at a given position and orientation
+def draw_axes(body_id, link_id=-1, length=0.1, duration=0):
+    # Get the position and orientation of the body or link
+    if link_id == -1:
+        position, orientation = p.getBasePositionAndOrientation(body_id)
+    else:
+        position, orientation = p.getLinkState(body_id, link_id)[:2]
+
+    # Convert quaternion to rotation matrix
+    rotation_matrix = p.getMatrixFromQuaternion(orientation)
+
+    # Define the axes directions
+    x_axis = [length * rotation_matrix[0], length * rotation_matrix[3], length * rotation_matrix[6]]
+    y_axis = [length * rotation_matrix[1], length * rotation_matrix[4], length * rotation_matrix[7]]
+    z_axis = [length * rotation_matrix[2], length * rotation_matrix[5], length * rotation_matrix[8]]
+
+    # Draw the axes
+    p.addUserDebugLine(position, [position[0] + x_axis[0], position[1] + x_axis[1], position[2] + x_axis[2]], [1, 0, 0], 2, duration)  # X-axis in red
+    p.addUserDebugLine(position, [position[0] + y_axis[0], position[1] + y_axis[1], position[2] + y_axis[2]], [0, 1, 0], 2, duration)  # Y-axis in green
+    p.addUserDebugLine(position, [position[0] + z_axis[0], position[1] + z_axis[1], position[2] + z_axis[2]], [0, 0, 1], 2, duration)  # Z-axis in blue
+
+# Draw the axes for the box
+# draw_axes(arhId)
+
+
+
+# Function to draw the origin axes
+def draw_origin_axes(length=0.6, duration=0):
+    origin = [0, 0, 0]
+    
+    # X-axis in red
+    p.addUserDebugLine(origin, [length, 0, 0], [1, 0, 0], 2, duration)
+    # Y-axis in green
+    p.addUserDebugLine(origin, [0, length, 0], [0, 1, 0], 2, duration)
+    # Z-axis in blue
+    p.addUserDebugLine(origin, [0, 0, length], [0, 0, 1], 2, duration)
+
+# Draw the origin axes
+draw_origin_axes()
+
+
+
+
+
 
 
 
@@ -60,18 +121,102 @@ threshold = 1e-5
 # Calculate the dimensions
 dimension_cuboid = [aabb_cuboid[1][i] - aabb_cuboid[0][i] for i in range(3)]
 print(f"initial dimension cuboid {dimension_cuboid}")
-for _ in range(1000):
+
+
+
+#### arh control
+tips_finger=[5,10,15,20]
+for tip in tips_finger:
+    p.enableJointForceTorqueSensor(
+    bodyUniqueId=arhId,
+    jointIndex=tip,
+    enableSensor=1
+    )
+
+
+
+
+finger_1=[2,3,4]
+finger_2=[7,8,9]
+finger_3=[12,13,14]
+finger_4=[16,18,19]
+target_position=[math.radians(80)]
+
+Force_applied = 100
+finger=finger_3   #  [11]#finger_3
+p.setJointMotorControlArray(
+    bodyUniqueId=arhId,
+    jointIndices=finger,
+    controlMode=p.POSITION_CONTROL,
+    targetPositions=target_position*len(finger),
+    forces=[Force_applied]*len(finger))
+
+
+
+############# simulation ##########################
+fx=[]
+fy=[]
+fz=[]
+for c_step in range(20):
     p.stepSimulation()
-    time.sleep(1./24.)
+    time.sleep(1./10.)
     
+    #### Sphere spatial information
     position, orientation = p.getBasePositionAndOrientation(sphereId)
+    filtered_position_sphere = list(dim if abs(dim) > threshold else 0 for dim in position)
+    print(f"Filtered position of sphere (x, y, z): {filtered_position_sphere}")
+    # for tip in tips_finger:
+    #     joint_state=p.getJointState(
+    #         bodyUniqueId=arhId, 
+    #         jointIndex=tip)
+    #     print(f"joint info of joint {tip}")
+    #     print(joint_state)
+            # for tip in tips_finger:
+    tip=15
+    joint_state=p.getJointState(
+        bodyUniqueId=arhId, 
+        jointIndex=tip)
+    print(f"joint info of joint {tip}")
+    print(joint_state[2][:3])
+    fx.append(joint_state[2][0])
+    fy.append(joint_state[2][1])
+    fz.append(joint_state[2][2])
+    print("contact point info")
+    contact_info=p.getContactPoints(arhId,cuboidId,15)
+    print(len(contact_info))
+    if len(contact_info)>0:
+        print("this ran")
+        print(c_step)
+
+    #### cuboid spatial information
+    position, orientation = p.getBasePositionAndOrientation(cuboidId)
+    filtered_position_cuboid = list(dim if dim > threshold else 0 for dim in position)
+    print(f"Filtered position of cuboid (x, y, z): {filtered_position_cuboid}")
     # print(position,orientation)
     dimension_cuboid = [aabb_cuboid[1][i] - aabb_cuboid[0][i] for i in range(3)]
     # print(f"initial dimension cuboid {dimension_cuboid}")
-    filtered_position = list(dim if dim > threshold else 0 for dim in position)
-    print(f"Filtered position (x, y, z): {filtered_position}")
-    filtered_orientation = list(dim if dim > threshold else 0 for dim in orientation)
-    print(f"Filtered orientation (x, y, z): {filtered_orientation}")
-
 # # Get the position and orientation of the robot
-position, orientation = p.getBasePositionAndOrientation(sphereId)
+# position, orientation = p.getBasePositionAndOrientation(sphereId)
+
+
+
+# Generate some sample data
+x = [x for x in range(len(fz))]#np.linspace(0, 5, 100)
+# y1 = x**2
+# y2 = np.sin(2*x)
+# y3 = np.exp(-x)
+
+# Create the plot
+plt.plot(x, fx, label='fx')  # Plot the first line with a label
+plt.plot(x, fy, label='fy')  # Plot the second line with a label
+plt.plot(x, fz, label='fz')  # Plot the third line with a label
+
+# Add labels and title
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.title('Three Graphs Overlaid')
+
+# Add legend
+plt.legend()
+
+plt.show()
