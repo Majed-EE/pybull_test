@@ -6,10 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 physicsClient=p.connect(p.GUI)
 # p.setAdditionalSearchVisualizer()
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
+p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
+
 p.setGravity(0,0,-9.8) # x,y,z direction
 
 
@@ -41,16 +42,33 @@ arhId=p.loadURDF(r"models/end_effector/left.urdf",StartPos_arh)
 
 ##################################### Soft bodies #####################################
 
-soft_body_Id = p.loadSoftBody("cube.obj", 
-                              basePosition=[0.09,0,0.05],
-                              scale=0.07,
-                              mass=0.15, 
-                              useNeoHookean=1, 
-                              NeoHookeanMu=100, # resistance to shear
-                              NeoHookeanLambda=600,  # resistance to change in volume
-                              NeoHookeanDamping=0.2, # will loose very less energry over time
-                              collisionMargin=0)
+# soft_body_Id = p.loadSoftBody("cube.obj", 
+#                               basePosition = [0.19,0,0.18], 
+#                               scale = 0.07, mass = 0.4, 
+#                               useNeoHookean = 1, NeoHookeanMu = 400, 
+#                               NeoHookeanLambda = 600, NeoHookeanDamping = 0.01, 
+#                               useSelfCollision = 1, frictionCoeff = .5, 
+#                               collisionMargin = 0.01)
+                              
+#                             #   basePosition=[0.09,0,0.05],
+#                             #   scale=0.07,
+#                             #   mass=0.15, 
+#                             #   useNeoHookean=1, 
+#                             #   NeoHookeanMu=100, # resistance to shear
+#                             #   NeoHookeanLambda=600,  # resistance to change in volume
+#                             #   NeoHookeanDamping=0.2, # will loose very less energry over time
+#                             #   collisionMargin=0)
 
+
+soft_body_Id= p.loadSoftBody("ball.obj", simFileName = "ball.vtk", basePosition = [0.09,0,0.08], 
+                            scale=0.07,
+                            mass=0.15, 
+                            useNeoHookean=1, 
+                            NeoHookeanMu=100, # resistance to shear
+                            NeoHookeanLambda=600,  # resistance to change in volume
+                            NeoHookeanDamping=0.2, # will loose very less energry over time
+                            collisionMargin=0)
+p.setPhysicsEngineParameter(sparseSdfVoxelSize=0.25)
 
 
 ##### draw axis lines ###########
