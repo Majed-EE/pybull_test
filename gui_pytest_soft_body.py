@@ -6,6 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
+############# hand control ################
+finger_bend_angle=60
+
+
+
+
+
 physicsClient=p.connect(p.GUI)
 # p.setAdditionalSearchVisualizer()
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -20,14 +28,14 @@ p.resetDebugVisualizerCamera(cameraDistance=0.4,cameraYaw=50,cameraPitch=-50,cam
 
 
 # define start pose
-StartPos_cuboid=[0.5, 0, 0.05]     #[0.1,0,0.03998089919150022] 
+StartPos_cuboid=[0.5, 0, 0.04]     #[0.1,0,0.03998089919150022] 
 
 
 
 StartPos_sphere=[-1,0,0.049987949685306586]  
 StartPos_arh=[0,0,0]
 StartOrientation=p.getQuaternionFromEuler([0,0,0])
-
+soft_body_position= [0.09,0,0.04]
 
 planeId=p.loadURDF("plane.urdf")
 
@@ -60,13 +68,13 @@ arhId=p.loadURDF(r"models/end_effector/left.urdf",StartPos_arh)
 #                             #   collisionMargin=0)
 
 
-soft_body_Id= p.loadSoftBody("ball.obj", simFileName = "ball.vtk", basePosition = [0.09,0,0.08], 
+soft_body_Id= p.loadSoftBody("ball.obj", simFileName = "ball.vtk", basePosition =soft_body_position, 
                             scale=0.07,
                             mass=0.15, 
                             useNeoHookean=1, 
-                            NeoHookeanMu=100, # resistance to shear
-                            NeoHookeanLambda=600,  # resistance to change in volume
-                            NeoHookeanDamping=0.2, # will loose very less energry over time
+                            NeoHookeanMu=100, 
+                            NeoHookeanLambda=600,  
+                            NeoHookeanDamping=0.2, 
                             collisionMargin=0)
 p.setPhysicsEngineParameter(sparseSdfVoxelSize=0.25)
 
@@ -167,7 +175,8 @@ finger_1=[2,3,4]
 finger_2=[7,8,9]
 finger_3=[12,13,14]
 finger_4=[16,18,19]
-target_position=[math.radians(80)]
+
+target_position=[math.radians(finger_bend_angle)]
 
 Force_applied = 100
 finger=finger_2   #  [11]#finger_3
@@ -189,9 +198,9 @@ fz=[]
 flag_touch=False
 ch=0
 ch_step=0
-for c_step in range(80):
+for c_step in range(100):
     p.stepSimulation()
-    time.sleep(1./10.)
+    time.sleep(1./24.)
     
     #### Sphere spatial information
     position, orientation = p.getBasePositionAndOrientation(sphereId)
