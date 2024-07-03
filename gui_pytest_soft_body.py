@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 
 ############# hand control ################
-finger_bend_angle=60
+finger_bend_angle=90
 
 
 
@@ -69,7 +69,7 @@ arhId=p.loadURDF(r"models/end_effector/left.urdf",StartPos_arh)
 
 
 soft_body_Id= p.loadSoftBody("ball.obj", simFileName = "ball.vtk", basePosition =soft_body_position, 
-                            scale=0.07,
+                            scale=0.14,
                             mass=0.15, 
                             useNeoHookean=1, 
                             NeoHookeanMu=100, 
@@ -198,7 +198,7 @@ fz=[]
 flag_touch=False
 ch=0
 ch_step=0
-for c_step in range(100):
+for c_step in range(50):
     p.stepSimulation()
     time.sleep(1./24.)
     
@@ -268,4 +268,4 @@ plt.title('Three Graphs Overlaid')
 # Add legend
 plt.legend()
 
-plt.show()
+# plt.show()
