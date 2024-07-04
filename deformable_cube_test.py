@@ -15,7 +15,7 @@ planeId = p.loadURDF("plane.urdf", [0,0,0],planeOrn)
 
 boxId = p.loadURDF("cube.urdf", [0,3,2],useMaximalCoordinates = True)
 
-ballId = p.loadSoftBody("cube.obj", basePosition = [1,0,1], scale=0.5,
+ballId = p.loadSoftBody("Cube_01.obj", basePosition = [1,0,1], scale=0.5,
                          mass=1,
                          useNeoHookean=1,
                          NeoHookeanMu=180,

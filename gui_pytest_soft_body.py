@@ -8,7 +8,10 @@ import matplotlib.pyplot as plt
 
 
 ############# hand control ################
-finger_bend_angle=90
+finger_bend_angle=0
+soft_body=True
+# body_type=["soft","rigid"]
+# press_body=body_type[1]
 
 
 
@@ -28,14 +31,17 @@ p.resetDebugVisualizerCamera(cameraDistance=0.4,cameraYaw=50,cameraPitch=-50,cam
 
 
 # define start pose
-StartPos_cuboid=[0.5, 0, 0.04]     #[0.1,0,0.03998089919150022] 
-
-
+if soft_body:
+    StartPos_cuboid=[0.5, 0, 0.04]     #[0.1,0,0.03998089919150022] 
+    soft_body_position= [0.09,0,0.04]
+else:
+    StartPos_cuboid=[0.15, 0, 0.04]     #[0.1,0,0.03998089919150022] 
+    soft_body_position= [0.5,0,0.04]
 
 StartPos_sphere=[-1,0,0.049987949685306586]  
 StartPos_arh=[0,0,0]
 StartOrientation=p.getQuaternionFromEuler([0,0,0])
-soft_body_position= [0.09,0,0.04]
+
 
 planeId=p.loadURDF("plane.urdf")
 
@@ -50,27 +56,11 @@ arhId=p.loadURDF(r"models/end_effector/left.urdf",StartPos_arh)
 
 ##################################### Soft bodies #####################################
 
-# soft_body_Id = p.loadSoftBody("cube.obj", 
-#                               basePosition = [0.19,0,0.18], 
-#                               scale = 0.07, mass = 0.4, 
-#                               useNeoHookean = 1, NeoHookeanMu = 400, 
-#                               NeoHookeanLambda = 600, NeoHookeanDamping = 0.01, 
-#                               useSelfCollision = 1, frictionCoeff = .5, 
-#                               collisionMargin = 0.01)
-                              
-#                             #   basePosition=[0.09,0,0.05],
-#                             #   scale=0.07,
-#                             #   mass=0.15, 
-#                             #   useNeoHookean=1, 
-#                             #   NeoHookeanMu=100, # resistance to shear
-#                             #   NeoHookeanLambda=600,  # resistance to change in volume
-#                             #   NeoHookeanDamping=0.2, # will loose very less energry over time
-#                             #   collisionMargin=0)
 
 
 soft_body_Id= p.loadSoftBody("ball.obj", simFileName = "ball.vtk", basePosition =soft_body_position, 
-                            scale=0.14,
-                            mass=0.15, 
+                            scale=0.07,
+                            mass=0.015, 
                             useNeoHookean=1, 
                             NeoHookeanMu=100, 
                             NeoHookeanLambda=600,  
@@ -175,19 +165,20 @@ finger_1=[2,3,4]
 finger_2=[7,8,9]
 finger_3=[12,13,14]
 finger_4=[16,18,19]
+all_movable=[2,3,4,7,8,9,12,13,14,16,18,19]
 
-target_position=[math.radians(finger_bend_angle)]
+target_position=math.radians(finger_bend_angle)
 
 Force_applied = 100
-finger=finger_2   #  [11]#finger_3
+finger= finger_2#all_movable#finger_2   #  [11]#finger_3
 tip=finger[-1]+1
 print(tip)
 p.setJointMotorControlArray(
     bodyUniqueId=arhId,
     jointIndices=finger,
     controlMode=p.POSITION_CONTROL,
-    targetPositions=target_position*len(finger),
-    forces=[Force_applied]*len(finger))
+    targetPositions=[target_position]*len(finger),
+    forces=[Force_applied]*len(finger) )
 
 
 
@@ -198,15 +189,28 @@ fz=[]
 flag_touch=False
 ch=0
 ch_step=0
-for c_step in range(50):
+
+if soft_body:
+    press_body_id=soft_body_Id
+else:
+    press_body_id=cuboidId #
+# Get vertex positions before interaction
+print("before interatction mesh information")
+vertices_before = np.array(p.getMeshData(press_body_id)[1])
+print(f"shape of mesh {np.shape(vertices_before)}")
+
+# print(np.shape(vertices_before))
+
+position, orientation = p.getBasePositionAndOrientation(sphereId)
+filtered_position_sphere = list(dim if abs(dim) > threshold else 0 for dim in position)
+print(f"Filtered position of sphere (x, y, z): {filtered_position_sphere}")
+    # for tip in tips_finger:
+for c_step in range(60):
     p.stepSimulation()
     time.sleep(1./24.)
     
     #### Sphere spatial information
-    position, orientation = p.getBasePositionAndOrientation(sphereId)
-    filtered_position_sphere = list(dim if abs(dim) > threshold else 0 for dim in position)
-    print(f"Filtered position of sphere (x, y, z): {filtered_position_sphere}")
-    # for tip in tips_finger:
+
     #     joint_state=p.getJointState(
     #         bodyUniqueId=arhId, 
     #         jointIndex=tip)
@@ -227,6 +231,10 @@ for c_step in range(50):
     
     print(len(contact_info))
     if len(contact_info)>0:
+        position, orientation = p.getBasePositionAndOrientation(sphereId)
+        filtered_position_sphere = list(dim if abs(dim) > threshold else 0 for dim in position)
+        print(f"Filtered position of sphere (x, y, z): {filtered_position_sphere}")
+    # for tip in tips_finger:
         
         
         if len(contact_info)-ch>0:
@@ -239,17 +247,36 @@ for c_step in range(50):
     #### cuboid spatial information
     position, orientation = p.getBasePositionAndOrientation(cuboidId)
     filtered_position_cuboid = list(dim if dim > threshold else 0 for dim in position)
-    print(f"Filtered position of cuboid (x, y, z): {filtered_position_cuboid}")
+    # print(f"Filtered position of cuboid (x, y, z): {filtered_position_cuboid}")
     # print(position,orientation)
     dimension_cuboid = [aabb_cuboid[1][i] - aabb_cuboid[0][i] for i in range(3)]
     # print(f"initial dimension cuboid {dimension_cuboid}")
 # # Get the position and orientation of the robot
 # position, orientation = p.getBasePositionAndOrientation(sphereId)
 
-######################################## Simulation ends ###############################
+######################################## Simulation Ends ##################################################
 
 
+# Get vertex positions after interaction
+vertices_after = np.array(p.getMeshData(press_body_id)[1])
+print("after interatction mesh information")
+print(f"shape of mesh {np.shape(vertices_after)}")
 
+print(vertices_after)
+# Measure of deformation
+deformation = vertices_after - vertices_before
+deformation_magnitude = np.linalg.norm(deformation, axis=1)
+
+print("Deformation magnitudes of vertices:")
+
+print(deformation_magnitude)
+
+"""Returns num mesh vertices and vertex positions."""
+# kwargs = {}
+# if hasattr(p, "MESH_DATA_SIMULATION_MESH"):
+#     kwargs["flags"] = p.MESH_DATA_SIMULATION_MESH
+# num_verts, mesh_vert_positions = p.getMeshData(soft_body_Id, **kwargs)
+# print(num_verts,mesh_vert_positions)
 # plot force
 x = [x for x in range(len(fz))]#np.linspace(0, 5, 100)
 # vertical=[fz[x] if x==ch_step else 0 for x in range(len(fz)) ]
@@ -268,4 +295,4 @@ plt.title('Three Graphs Overlaid')
 # Add legend
 plt.legend()
 
-# plt.show()
+plt.show()

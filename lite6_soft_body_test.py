@@ -19,9 +19,9 @@ else:
     physicsClient=p.connect(p.DIRECT)
 # p.setAdditionalSearchVisualizer()
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
-p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
+# p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
 
-p.setGravity(0,0,-9.8) # x,y,z direction
+# p.setGravity(0,0,-9.8) # x,y,z direction
 
 
 # camera position
@@ -41,17 +41,19 @@ soft_body_position= [0.09,0,0.04]
 
 planeId=p.loadURDF("plane.urdf")
 StartPos_lite6,StartOrn_lite_6=[0,0,0],p.getQuaternionFromEuler([0,0,0])
+
+
+
 ########################## Rigid Bodies ###################
 cuboidId=p.loadURDF(r"models/simple_object/box.urdf",StartPos_cuboid)
 sphereId=p.loadURDF(r"models/simple_object/sphere.urdf",StartPos_sphere)
 
 lite_arm_Id=p.loadURDF(r"models/arm/lite6.urdf",StartPos_lite6,StartOrn_lite_6)
-initial_position=[math.radians(180)]
-p.setJointMotorControlArray(
+initial_position=math.radians(180)
+p.resetJointState(
             bodyUniqueId=lite_arm_Id, 
-            jointIndices=[3], 
-            controlMode=p.POSITION_CONTROL,  
-            targetPositions=initial_position
+            jointIndex=3, 
+            targetValue=initial_position
         )
 
 
